@@ -36,7 +36,7 @@
   const pic = (al, t) => `src="${img(al, t)}"`;
   function setPic(el, al, t) { el.src = img(al, t); }
   // airline logo as a white monochrome mark (img/logos); falls back to the IATA code
-  const logoSrc = c => `img/logos/${c}.png`;
+  const logoSrc = c => `img/logos/${c}.webp`;
   const logo = (c, cls) => `<span class="logo ${cls || ''}"><img src="${logoSrc(c)}" alt="${esc((AL[c] || {}).name || c)}" decoding="async"><b>${esc(c)}</b></span>`;
   // missing livery → generic silhouette (missing logo → code)
   document.addEventListener('error', e => {
@@ -140,11 +140,11 @@
   function reveals(root) {
     root.querySelectorAll('[data-split]').forEach(el => {
       const words = splitWords(el);
-      gsap.from(words, { yPercent: 110, rotate: 4, duration: 1.1, ease: 'expo.out', stagger: .06, scrollTrigger: { trigger: el, start: 'top 88%' } });
+      gsap.from(words, { yPercent: 110, duration: 1.1, ease: 'expo.out', stagger: .06, scrollTrigger: { trigger: el, start: 'top 88%' } });
     });
     ScrollTrigger.batch(root.querySelectorAll('.reveal'), {
       start: 'top 90%',
-      onEnter: els => gsap.fromTo(els, { y: 60, opacity: 0, filter: 'blur(12px)' }, { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.2, ease: 'expo.out', stagger: .08, overwrite: true, clearProps: 'filter' })
+      onEnter: els => gsap.fromTo(els, { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 1.2, ease: 'expo.out', stagger: .08, overwrite: true })
     });
     root.querySelectorAll('.reveal').forEach(el => gsap.set(el, { opacity: 0 }));
     root.querySelectorAll('[data-count]').forEach(el => {
@@ -265,8 +265,12 @@
     app.innerHTML = `
     <div class="home">
       <section class="flight" id="sec-volo" aria-label="Decollo">
-        <div class="fl-earth"><div class="fl-city"></div><div class="fl-ground">
-          <div class="fl-runway"><i class="fl-edge l"></i><i class="fl-edge r"></i><i class="fl-center"></i><span class="fl-num">36</span><i class="fl-keys"></i></div>
+        <div class="fl-earth"><canvas class="fl-city"></canvas><div class="fl-ground">
+          <div class="fl-runway">
+            <i class="fl-roll fl-center"></i>
+            <div class="fl-threshold"><span class="fl-num">36</span><i class="fl-keys"></i></div>
+            <i class="fl-roll fl-edges"></i>
+          </div>
         </div></div>
         <div class="fl-clouds back"></div>
         <div class="fl-body">
@@ -324,7 +328,7 @@
             return `<a class="al-card" href="#/airline/${c}" style="--c:${esc(a.color)};--c2:${esc(a.color2 || a.color)}">
               <span class="al-alliance">${esc(a.alliance || '')}</span>
               ${logo(c, 'al-logo')}
-              <img class="al-plane" ${pic(c, t, 'strip')} alt="" loading="lazy">
+              <img class="al-plane" ${pic(c, t, 'strip')} alt="" loading="lazy" decoding="async">
               <span class="al-name">${esc(a.name)}</span>
               <span class="al-meta">${esc(a.flag || '')} ${esc(a.country)} · ${FLEET[c].length} modelli</span>
             </a>`;
@@ -388,9 +392,13 @@
     const planes = root.querySelectorAll('.hero-plane');
     const cap = root.querySelector('.cap-t'), capDot = root.querySelector('.hero-caption .dot');
     gsap.set(planes, { xPercent: -50, yPercent: -50, opacity: 0 });
-    let hi = 0, heroTl = null, heroTimer = null, heroAlive = true;
+    let hi = 0, heroTl = null, heroTimer = null, heroAlive = true, heroSeen = true;
+    const heroIo = new IntersectionObserver(es => { heroSeen = es[0].isIntersecting; });
+    heroIo.observe(root.querySelector('.hero'));
     function heroNext() {
       if (!heroAlive) return;
+      // off screen: don't animate big images behind the user's back, check again later
+      if (!heroSeen && hi > 0) { heroTimer = setTimeout(heroNext, 800); return; }
       const [al, t] = HERO[hi % HERO.length];
       const cur = planes[hi % 2], prev = planes[(hi + 1) % 2];
       setPic(cur, al, t);
@@ -412,14 +420,14 @@
       };
       cur.decode ? cur.decode().then(go, go) : go();
     }
-    cleanups.push(() => { heroAlive = false; clearTimeout(heroTimer); heroTl && heroTl.kill(); });
+    cleanups.push(() => { heroAlive = false; heroIo.disconnect(); clearTimeout(heroTimer); heroTl && heroTl.kill(); });
 
     function heroIntro() {
       const tl = gsap.timeline({ scrollTrigger: { trigger: root.querySelector('.hero'), start: 'top 65%', once: true } });
-      tl.from(root.querySelector('.hero-eyebrow'), { y: 20, opacity: 0, filter: 'blur(8px)', duration: 1, ease: 'expo.out' })
+      tl.from(root.querySelector('.hero-eyebrow'), { y: 20, opacity: 0, duration: 1, ease: 'expo.out' })
         .from(splitWords(root.querySelector('.hl1')), { yPercent: 115, duration: 1.3, ease: 'expo.out', stagger: .08 }, '-=.8')
         .from(splitWords(root.querySelector('.hl2')), { yPercent: 115, duration: 1.3, ease: 'expo.out', stagger: .08 }, '-=1.1')
-        .from(root.querySelector('.hero-lead'), { y: 24, opacity: 0, filter: 'blur(10px)', duration: 1.2, ease: 'expo.out' }, '-=1')
+        .from(root.querySelector('.hero-lead'), { y: 24, opacity: 0, duration: 1.2, ease: 'expo.out' }, '-=1')
         .from(root.querySelector('.search-pill'), { y: 30, scale: .9, opacity: 0, duration: 1.2, ease: 'expo.out' }, '-=1')
         .from(root.querySelector('.scroll-hint'), { opacity: 0, duration: 1 }, '-=.4')
         .from(root.querySelectorAll('.orb'), { scale: .4, opacity: 0, duration: 2.4, ease: 'power2.out', stagger: .15 }, 0);
@@ -433,7 +441,8 @@
     // hero parallax on scroll
     gsap.to(root.querySelector('.hero-copy'), { yPercent: -40, opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom 30%', scrub: true } });
     gsap.to(root.querySelector('.hero-stage'), { scale: 1.35, yPercent: -30, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
-    root.querySelectorAll('.orb').forEach((o, i) => gsap.to(o, { yPercent: (i + 1) * 30, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } }));
+    gsap.to(root.querySelector('.hero-bg'), { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom 20%', scrub: true } });
+    root.querySelectorAll('.orb').forEach((o, i) => gsap.to(o, { yPercent: (i + 1) * 20, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } }));
 
     // ---------- airlines scroller (drag to scroll + reveal) ----------
     const sc = root.querySelector('.al-scroller');
@@ -451,9 +460,10 @@
         if ((e.deltaY > 0 && sc.scrollLeft < max - 2) || (e.deltaY < 0 && sc.scrollLeft > 2)) { e.preventDefault(); sc.scrollLeft += e.deltaY; }
       }
     }, { passive: false });
-    gsap.from(sc.querySelectorAll('.al-card'), {
-      x: 160, opacity: 0, rotationY: -25, duration: 1.3, ease: 'expo.out', stagger: .06,
-      scrollTrigger: { trigger: sc, start: 'top 85%' }
+    const visibleCards = [...sc.querySelectorAll('.al-card')].filter(c => c.offsetLeft < innerWidth + 40);
+    gsap.from(visibleCards, {
+      x: 120, opacity: 0, duration: 1.2, ease: 'expo.out', stagger: .07, clearProps: 'transform',
+      scrollTrigger: { trigger: sc, start: 'top 90%' }
     });
 
     // ---------- showcase: pinned scroll with fly-through transitions ----------
@@ -563,39 +573,64 @@
     let seed = 7;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 
+    // Everything below is drawn once into small bitmaps, so the GPU only moves textures
+    // around while scrolling (no repaints, no giant layers).
+
     // night-time towns: clusters of lights that swim up as the ground falls away
-    const W = innerWidth, H = innerHeight, dots = [];
+    const W = innerWidth, H = innerHeight, CW = Math.round(W * 1.6), CH = Math.round(H * 1.6);
+    city.width = CW; city.height = CH;
+    const cg = city.getContext('2d');
     for (let t = 0; t < 26; t++) {
-      const cx = (rnd() - .5) * W * 1.6, cy = (rnd() - .5) * H * 1.6, r = 30 + rnd() * 110;
-      if (Math.abs(cx) < 70 && Math.abs(cy) < 70) continue; // the airfield itself stays dark
+      const cx = CW / 2 + (rnd() - .5) * CW, cy = CH / 2 + (rnd() - .5) * CH, r = 30 + rnd() * 110;
+      if (Math.abs(cx - CW / 2) < 70 && Math.abs(cy - CH / 2) < 70) continue; // the airfield itself stays dark
       const n = 12 + Math.floor(rnd() * 40);
       for (let k = 0; k < n; k++) {
         const a = rnd() * Math.PI * 2, d = Math.pow(rnd(), 1.6) * r;
-        const x = Math.round(cx + Math.cos(a) * d), y = Math.round(cy + Math.sin(a) * d);
-        const c = rnd() < .75 ? '255,190,110' : rnd() < .6 ? '255,244,226' : '130,185,255';
-        dots.push(`${x}px ${y}px ${rnd() < .25 ? 3 : 2}px rgba(${c},${(.35 + rnd() * .6).toFixed(2)})`);
+        const x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d, rad = rnd() < .25 ? 3.2 : 2.2;
+        const c = rnd() < .75 ? '255,190,110' : rnd() < .6 ? '255,244,226' : '130,185,255', al = .35 + rnd() * .6;
+        const g = cg.createRadialGradient(x, y, 0, x, y, rad);
+        g.addColorStop(0, `rgba(${c},${al})`); g.addColorStop(1, `rgba(${c},0)`);
+        cg.fillStyle = g; cg.fillRect(x - rad, y - rad, rad * 2, rad * 2);
       }
     }
-    city.style.boxShadow = dots.join(',');
 
-    // clouds: a layer below the plane and a denser one between plane and camera
-    const cloud = (layer, n, size) => {
+    // clouds: a few soft sprites, scaled up by CSS (tiny textures, cheap to move)
+    const sprites = [0, 1, 2].map(() => {
+      const c = document.createElement('canvas'); c.width = 320; c.height = 200;
+      const g = c.getContext('2d');
+      for (let i = 0; i < 7; i++) {
+        const x = 70 + rnd() * 180, y = 70 + rnd() * 60, rx = 45 + rnd() * 55;
+        const gr = g.createRadialGradient(x, y, 0, x, y, rx);
+        const tone = 190 + Math.round(rnd() * 40);
+        gr.addColorStop(0, `rgba(${tone},${tone + 10},${Math.min(255, tone + 30)},.5)`);
+        gr.addColorStop(1, `rgba(${tone},${tone + 10},${Math.min(255, tone + 30)},0)`);
+        g.fillStyle = gr; g.fillRect(0, 0, 320, 200);
+      }
+      return c.toDataURL();
+    });
+    const cloud = (layer, n, size, dim) => {
       const box = q('.fl-clouds.' + layer);
       for (let i = 0; i < n; i++) {
-        const c = document.createElement('i');
+        const c = document.createElement('img');
         const w = size[0] + rnd() * (size[1] - size[0]);
-        c.className = 'cloud';
-        c.style.cssText = `width:${w}vw;height:${w * .62}vw;left:${(rnd() * 110 - 5 - w / 2).toFixed(1)}%;--o:${(.45 + rnd() * .5).toFixed(2)}`;
+        c.className = 'cloud'; c.alt = ''; c.src = sprites[i % 3];
+        c.style.cssText = `width:${w.toFixed(1)}vw;left:${(rnd() * 110 - 5 - w / 2).toFixed(1)}%;opacity:${((.5 + rnd() * .5) * dim).toFixed(2)}`;
         c.dataset.speed = (.75 + rnd() * .6).toFixed(2);
         c.dataset.delay = (rnd() * 1.2).toFixed(2);
         box.appendChild(c);
       }
       return [...box.children];
     };
-    const back = cloud('back', 9, [26, 52]), front = cloud('front', 6, [45, 80]);
+    const back = cloud('back', 7, [30, 55], .55), front = cloud('front', 5, [50, 85], 1);
+
+    // runway markings loop inside a screen-sized runway: one repeat period, in whole px
+    const P = Math.round(H * .15 / 2) * 2;
+    fl.style.setProperty('--p', P + 'px');
+    const rolls = qa('.fl-roll'), threshold = q('.fl-threshold');
 
     gsap.set(body, { xPercent: -50, yPercent: -50 });
     gsap.set(runway, { xPercent: -50 });
+    gsap.set(city, { xPercent: -50, yPercent: -50 });
     gsap.set(shadow, { xPercent: 2.5, yPercent: 3.5 });
     gsap.set(lines.slice(1), { opacity: 0, y: 40 });
     gsap.set([...back, ...front], { y: '0vh' });
@@ -607,7 +642,7 @@
     const inTl = gsap.timeline({ delay: .2 });
     if (!reduced) {
       inTl.from(earth, { opacity: 0, scale: 1.06, duration: 1.6, ease: 'power2.out' }, 0)
-        .from(qa('.fl-edge'), { opacity: 0, duration: 1.2, ease: 'none' }, .3)
+        .from(q('.fl-edges'), { opacity: 0, duration: 1.2, ease: 'none' }, .3)
         .from(body, { y: '80vh', duration: 2.2, ease: 'power3.out' }, .2)
         .from(lines[0].children, { y: 40, opacity: 0, duration: 1.2, ease: 'expo.out', stagger: .1 }, 1.3)
         .from(hud.children, { y: 20, opacity: 0, duration: 1, ease: 'expo.out', stagger: .07 }, 1.5)
@@ -644,7 +679,8 @@
 
     // 0 → 3 · take-off roll: the runway streams away beneath, faster and faster
     T.to(hint, { opacity: 0, y: 20, duration: .4 }, 0)
-      .to(runway, { y: () => innerHeight * 3.1, duration: 3.3, ease: 'power2.in' }, 0)
+      .to(rolls, { y: H * 3.1, duration: 3.3, ease: 'power2.in', modifiers: { y: v => (parseFloat(v) % P) + 'px' } }, 0)
+      .to(threshold, { y: H * 3.1, duration: 3.3, ease: 'power2.in' }, 0)
       .to(craft, { y: '-5vh', duration: 3, ease: 'power1.in' }, 0);
     swap(0, 1, .5);
 
@@ -809,7 +845,7 @@
       gsap.from(chars, { yPercent: 100, opacity: 0, duration: 1, ease: 'expo.out', stagger: .04, delay: .2 });
     } else {
       gsap.fromTo(plane, { x: dir * window.innerWidth * .8, scale: .8, opacity: 0, rotate: dir * -2 },
-        { x: 0, scale: 1, opacity: 1, filter: 'blur(0px)', rotate: 0, duration: 1.5, ease: 'expo.out', delay: .1 });
+        { x: 0, scale: 1, opacity: 1, rotate: 0, duration: 1.5, ease: 'expo.out', delay: .1 });
       gsap.from(chars, { x: dir * 90, opacity: 0, filter: 'blur(10px)', duration: 1.1, ease: 'expo.out', stagger: .035 });
     }
     gsap.from(root.querySelector('.d-bgname'), { x: dir * window.innerWidth * .3, opacity: 0, duration: 1.6, ease: 'expo.out' });
@@ -853,7 +889,7 @@
       const next = new Image(); setPic(next, al, t);
       gsap.killTweensOf(plane);
       gsap.to(plane, {
-        x: -d * innerWidth * .7, scale: .92, opacity: 0, filter: 'blur(16px)', duration: .55, ease: 'power3.in', onComplete: () => {
+        x: -d * innerWidth * .7, scale: .92, opacity: 0, duration: .55, ease: 'power3.in', onComplete: () => {
           const show = () => {
             setPic(plane, al, t); plane.alt = `${a.name} ${AL[al].name}`;
             gsap.fromTo(plane, { x: d * innerWidth * .7, scale: .92, opacity: 0 }, { x: 0, scale: 1, opacity: 1, duration: 1.2, ease: 'expo.out' });

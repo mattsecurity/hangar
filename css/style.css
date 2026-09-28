@@ -164,10 +164,11 @@ img { display: block; max-width: 100%; user-select: none; -webkit-user-drag: non
   padding: 104px 0 70px;
 }
 .hero-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-.hero-bg .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .55; will-change: transform; }
-.hero-bg .orb.o1 { width: 60vw; height: 60vw; left: -18vw; top: -22vw; background: radial-gradient(circle, #0a3d7a, transparent 70%); }
-.hero-bg .orb.o2 { width: 50vw; height: 50vw; right: -16vw; top: 10vh; background: radial-gradient(circle, #3a1466, transparent 70%); }
-.hero-bg .orb.o3 { width: 70vw; height: 40vw; left: 15vw; bottom: -20vw; background: radial-gradient(circle, #06305c, transparent 70%); }
+.hero-bg { will-change: opacity; }
+.hero-bg .orb { position: absolute; border-radius: 50%; opacity: .6; will-change: transform; }
+.hero-bg .orb.o1 { width: 70vw; height: 70vw; left: -24vw; top: -28vw; background: radial-gradient(closest-side, #0a3d7a, rgba(10, 61, 122, .45) 45%, transparent); }
+.hero-bg .orb.o2 { width: 60vw; height: 60vw; right: -22vw; top: 4vh; background: radial-gradient(closest-side, #3a1466, rgba(58, 20, 102, .45) 45%, transparent); }
+.hero-bg .orb.o3 { width: 80vw; height: 50vw; left: 10vw; bottom: -24vw; background: radial-gradient(closest-side, #06305c, rgba(6, 48, 92, .45) 45%, transparent); }
 .hero-bg .grid-floor {
   position: absolute; left: -50%; right: -50%; bottom: -10%; height: 55%; overflow: hidden;
   transform: perspective(600px) rotateX(62deg); transform-origin: bottom;
@@ -180,7 +181,7 @@ img { display: block; max-width: 100%; user-select: none; -webkit-user-drag: non
   animation: floorMove 3s linear infinite; will-change: transform;
 }
 @keyframes floorMove { to { transform: translateY(80px); } }
-.hero-copy { position: relative; z-index: 2; }
+.hero-copy { position: relative; z-index: 2; will-change: transform, opacity; }
 .hero-copy .display > span { display: block; }
 .hero .lead { margin: 22px auto 28px; max-width: 640px; }
 .search-pill {
@@ -193,7 +194,7 @@ img { display: block; max-width: 100%; user-select: none; -webkit-user-drag: non
 .search-pill kbd, .sp-field kbd {
   font-family: inherit; font-size: 12px; color: var(--text-2); padding: 6px 10px; border-radius: 999px; background: rgba(255, 255, 255, .1);
 }
-.hero-stage { position: relative; z-index: 1; width: 100%; flex: 1; min-height: clamp(170px, 30vh, 360px); max-height: 420px; margin-top: 10px; }
+.hero-stage { will-change: transform; position: relative; z-index: 1; width: 100%; flex: 1; min-height: clamp(170px, 30vh, 360px); max-height: 420px; margin-top: 10px; }
 .hero-plane {
   position: absolute; left: 50%; top: 50%; width: min(1100px, 92vw); height: 100%; object-fit: contain;
   filter: drop-shadow(0 40px 40px rgba(0, 0, 0, .6));
@@ -641,48 +642,39 @@ img { display: block; max-width: 100%; user-select: none; -webkit-user-drag: non
   background: radial-gradient(90% 70% at 50% 46%, #0a0f15 0%, #05070a 55%, #000 100%);
   will-change: transform, opacity;
 }
-.fl-city { position: absolute; left: 50%; top: 46%; width: 3px; height: 3px; border-radius: 50%; opacity: 0; will-change: transform, opacity; }
+.fl-city { position: absolute; left: 50%; top: 46%; opacity: 0; will-change: transform, opacity; }
+/* screen-sized runway; markings loop inside it (see flight()) */
 .fl-runway {
-  position: absolute; left: 50%; top: -420vh; height: 520vh; width: calc(var(--craft) * 1.06);
+  position: absolute; left: 50%; top: -25vh; height: 150vh; width: calc(var(--craft) * 1.06); overflow: hidden;
   background:
     linear-gradient(90deg, transparent 2.4%, rgba(255, 255, 255, .7) 2.4% 3.3%, transparent 3.3% 96.7%, rgba(255, 255, 255, .7) 96.7% 97.6%, transparent 97.6%),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, .018) 0 3px, transparent 3px 11px),
     linear-gradient(90deg, #0f1013, #1b1c20 50%, #0f1013);
-  will-change: transform;
 }
-/* edge lights */
-.fl-edge {
-  position: absolute; top: 0; bottom: 0; width: 16px; will-change: opacity;
-  background: radial-gradient(circle, #fff7e6 0 1.6px, rgba(255, 214, 150, .55) 2.6px, transparent 7px) center bottom / 16px 7.5vh repeat-y;
-  filter: drop-shadow(0 0 4px rgba(255, 210, 140, .8));
-}
-.fl-edge.l { left: -22px; }
-.fl-edge.r { right: -22px; }
+.fl-roll { position: absolute; left: 0; right: 0; top: calc(var(--p) * -1); bottom: 0; will-change: transform; }
 .fl-center {
-  position: absolute; left: 50%; top: 0; bottom: 27vh; width: 5px; margin-left: -2.5px;
-  background: repeating-linear-gradient(0deg, rgba(240, 240, 240, .85) 0 7vh, transparent 7vh 12vh);
+  left: 50%; right: auto; width: 5px; margin-left: -2.5px;
+  background: repeating-linear-gradient(180deg, rgba(240, 240, 240, .85) 0 calc(var(--p) * .6), transparent calc(var(--p) * .6) var(--p));
 }
+/* edge lights, glow baked into the gradient */
+.fl-edges {
+  background:
+    radial-gradient(circle, #fff7e6 0 1.6px, rgba(255, 214, 150, .6) 2.6px, rgba(255, 200, 120, .18) 5px, transparent 8px) 0 0 / 18px calc(var(--p) / 2) repeat-y,
+    radial-gradient(circle, #fff7e6 0 1.6px, rgba(255, 214, 150, .6) 2.6px, rgba(255, 200, 120, .18) 5px, transparent 8px) 100% 0 / 18px calc(var(--p) / 2) repeat-y;
+}
+/* threshold patch hides the centreline under the numbers, then rolls away */
+.fl-threshold { position: absolute; left: 0; right: 0; bottom: 25vh; height: 28vh; background: inherit; will-change: transform; }
 .fl-num {
-  position: absolute; left: 50%; bottom: 12vh; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: 10vh; transform: translateX(-50%);
   font-size: 11vh; font-weight: 700; letter-spacing: .08em; line-height: 1; color: rgba(236, 236, 236, .82);
 }
 .fl-keys {
-  position: absolute; left: 7%; right: 7%; bottom: 2vh; height: 8vh;
+  position: absolute; left: 7%; right: 7%; bottom: 0; height: 8vh;
   background: repeating-linear-gradient(90deg, rgba(236, 236, 236, .82) 0 3.4%, transparent 3.4% 6.9%);
   -webkit-mask: linear-gradient(90deg, #000 44%, transparent 44% 56%, #000 56%); mask: linear-gradient(90deg, #000 44%, transparent 44% 56%, #000 56%);
 }
 
 .fl-clouds { position: absolute; inset: 0; pointer-events: none; }
-.fl-clouds .cloud {
-  position: absolute; top: 105%; opacity: var(--o);
-  background:
-    radial-gradient(34% 44% at 30% 58%, rgba(206, 218, 238, .55), transparent 70%),
-    radial-gradient(30% 40% at 55% 42%, rgba(226, 234, 248, .6), transparent 70%),
-    radial-gradient(28% 36% at 74% 60%, rgba(196, 210, 234, .5), transparent 70%),
-    radial-gradient(50% 30% at 50% 70%, rgba(170, 186, 214, .35), transparent 70%);
-  will-change: transform;
-}
-.fl-clouds.back .cloud { opacity: calc(var(--o) * .55); }
+.fl-clouds .cloud { position: absolute; top: 105%; height: auto; max-width: none; will-change: transform; }
 .fl-clouds.front { z-index: 3; }
 /* keeps copy and HUD legible over the runway markings */
 .flight::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 42%; z-index: 3; pointer-events: none; background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .55) 45%, rgba(0, 0, 0, .85)); }
