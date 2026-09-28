@@ -765,9 +765,11 @@
           <button class="d-nav next glass lens" aria-label="Modello successivo: ${esc(AC[nextT].name)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg><span class="d-nav-label">${esc(AC[nextT].short)}</span></button>
         </div>
         <div class="d-ops-wrap">
-          <div class="d-ops glass lens" role="tablist" aria-label="Compagnie">
-            <span class="op-thumb"></span>
-            ${ops.map(o => `<button role="tab" data-al="${o}" class="${o === al ? 'on' : ''}"><i style="background:${alColor(o)}"></i>${esc(AL[o].name)}</button>`).join('')}
+          <div class="d-ops-bar glass lens">
+            <div class="d-ops" role="tablist" aria-label="Compagnie">
+              <span class="op-thumb"></span>
+              ${ops.map(o => `<button role="tab" data-al="${o}" class="${o === al ? 'on' : ''}"><i style="background:${alColor(o)}"></i>${esc(AL[o].name)}</button>`).join('')}
+            </div>
           </div>
         </div>
         <div class="d-scrollcue">${ops.length} compagnie · usa ← → o scorri lateralmente per cambiare modello</div>
@@ -876,8 +878,15 @@
       const sl = b.offsetLeft - opsEl.clientWidth / 2 + b.offsetWidth / 2;
       opsEl.scrollTo({ left: sl, behavior: instant ? 'auto' : 'smooth' });
     }
-    requestAnimationFrame(() => moveThumb(true));
-    document.fonts && document.fonts.ready.then(() => moveThumb(true));
+    // fade the edges only where there is more to scroll
+    function opsEdges() {
+      const max = opsEl.scrollWidth - opsEl.clientWidth;
+      opsEl.classList.toggle('fade-l', opsEl.scrollLeft > 2);
+      opsEl.classList.toggle('fade-r', opsEl.scrollLeft < max - 2);
+    }
+    opsEl.addEventListener('scroll', opsEdges, { passive: true });
+    requestAnimationFrame(() => { moveThumb(true); opsEdges(); });
+    document.fonts && document.fonts.ready.then(() => { moveThumb(true); opsEdges(); });
     opsEl.addEventListener('click', e => {
       const b = e.target.closest('button[data-al]'); if (!b || b.dataset.al === al) return;
       const oldIdx = ops.indexOf(al), newIdx = ops.indexOf(b.dataset.al);

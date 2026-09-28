@@ -421,9 +421,16 @@ img { display: block; max-width: 100%; user-select: none; -webkit-user-drag: non
   background: radial-gradient(closest-side, rgba(0, 0, 0, .8), transparent); filter: blur(8px); z-index: 1;
 }
 .d-ops-wrap { position: relative; z-index: 4; display: flex; justify-content: center; margin-top: 10px; padding: 0 16px; }
+/* the glass shell stays put; only the strip inside scrolls */
+.d-ops-bar { border-radius: 999px; max-width: 100%; overflow: hidden; }
 .d-ops {
-  display: flex; gap: 4px; padding: 5px; border-radius: 999px; max-width: 100%; overflow-x: auto; scrollbar-width: none; position: relative;
+  --fl: 0px; --fr: 0px;
+  display: flex; gap: 4px; padding: 5px; border-radius: inherit; overflow-x: auto; scrollbar-width: none; position: relative;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent);
+  mask: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent);
 }
+.d-ops.fade-l { --fl: 36px; }
+.d-ops.fade-r { --fr: 36px; }
 .d-ops::-webkit-scrollbar { display: none; }
 .d-ops .op-thumb {
   position: absolute; top: 5px; bottom: 5px; left: 0; width: 0; border-radius: 999px; z-index: 0;
