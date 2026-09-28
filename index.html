@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<title>Hangar — Ogni aereo. Ogni rotta.</title>
+<meta name="description" content="Il catalogo delle flotte mondiali: modelli, compagnie, specifiche e rotte su un globo 3D." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+<link rel="stylesheet" href="css/style.css?v=17" />
+</head>
+<body>
+  <!-- navigation (glass layer) -->
+  <header class="nav">
+    <nav class="nav-pill glass lens" aria-label="Principale">
+      <a href="#/" class="brand" aria-label="Hangar, home">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+        <span>Hangar</span>
+      </a>
+      <div class="nav-links">
+        <a href="#/catalogo" data-nav="catalogo">Catalogo</a>
+        <a href="#/compagnie" data-nav="compagnie">Compagnie</a>
+        <a href="#/rotte" data-nav="rotte">Rotte</a>
+      </div>
+      <button class="nav-search" data-open-search aria-label="Cerca">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zm5.3-2.2L21 21"/></svg>
+      </button>
+    </nav>
+  </header>
+
+  <main id="app"></main>
+
+  <!-- spotlight search -->
+  <div id="spotlight" aria-hidden="true">
+    <div class="sp-backdrop" data-close-search></div>
+    <div class="sp-panel" role="dialog" aria-label="Cerca">
+      <div class="sp-field glass lens">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zm5.3-2.2L21 21"/></svg>
+        <input id="sp-input" type="search" placeholder="Cerca compagnia, modello, città…" autocomplete="off" spellcheck="false" />
+        <kbd>esc</kbd>
+      </div>
+      <div class="sp-seg glass" role="tablist">
+        <span class="sp-seg-thumb"></span>
+        <button role="tab" data-scope="all" class="on">Tutto</button>
+        <button role="tab" data-scope="airline">Compagnie</button>
+        <button role="tab" data-scope="aircraft">Aerei</button>
+      </div>
+      <div class="sp-results" id="sp-results" data-lenis-prevent></div>
+    </div>
+  </div>
+
+  <div id="cursor-glow" aria-hidden="true"></div>
+  <svg id="lens-defs" width="0" height="0" style="position:absolute" aria-hidden="true"></svg>
+
+  <script src="data/airports.js"></script>
+  <script src="data/aircraft.js"></script>
+  <script src="data/airlines.js"></script>
+  <script src="data/routes.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Flip.min.js"></script>
+  <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <script src="js/glass.js?v=17"></script>
+  <script src="js/globe.js?v=17"></script>
+  <script src="js/app.js?v=17"></script>
+</body>
+</html>
