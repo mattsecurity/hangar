@@ -282,7 +282,7 @@ window.DATA_EN = {
       description: "A global benchmark for inflight service, operating the world's longest nonstop flights from Singapore Changi."
     },
     "TK": {
-      country: "T\u00fcrkiye",
+      country: "Turkey",
       tagline: "Widen Your World.",
       description: "The airline that flies to more countries than any other in the world, with its hub at the new Istanbul Airport."
     },
