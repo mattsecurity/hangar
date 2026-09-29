@@ -9,6 +9,7 @@
   const wrap180 = d => ((d + 180) % 360 + 360) % 360 - 180;
   const wrap360 = d => ((d % 360) + 360) % 360;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const T = k => window.I18N ? I18N.t(k) : k;
 
   // ---------- geo helpers ----------
   function sunPosition(date) {
@@ -187,12 +188,12 @@
     container.innerHTML =
       '<div class="g-stars"></div><div class="g-map"></div>' +
       (opts.controls ? `<div class="g-controls">
-        <button class="gbtn glass lens" data-g="overview" aria-label="Vista globale">${ICON.globe}<span>Globo</span></button>
-        <button class="gbtn glass lens" data-g="replay" aria-label="Rivedi il volo" style="display:none">${ICON.replay}</button>
-        <button class="gbtn glass lens" data-g="follow" aria-label="Segui il volo" style="display:none">${ICON.follow}<span>Segui volo</span></button>
+        <button class="gbtn glass lens" data-g="overview" aria-label="${T('g.overview')}">${ICON.globe}<span>${T('g.globe')}</span></button>
+        <button class="gbtn glass lens" data-g="replay" aria-label="${T('g.replay')}" style="display:none">${ICON.replay}</button>
+        <button class="gbtn glass lens" data-g="follow" aria-label="${T('g.follow')}" style="display:none">${ICON.follow}<span>${T('g.followShort')}</span></button>
       </div>` : '') +
       '<div class="g-card glass"></div>' +
-      '<div class="g-hint">Clicca per interagire · trascina per ruotare</div>';
+      `<div class="g-hint">${T('g.hint')}</div>`;
     stars(container.querySelector('.g-stars'));
     const mapEl = container.querySelector('.g-map');
     const cardEl = container.querySelector('.g-card');

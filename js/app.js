@@ -21,7 +21,8 @@
   const MAKERS = ['Airbus', 'Boeing', 'Embraer', 'Bombardier', 'ATR', 'De Havilland Canada'];
   const makerIdx = m => { const i = MAKERS.indexOf(m); return i < 0 ? 50 : i; };
   const CATS = ['Widebody', 'Narrowbody', 'Regional', 'Turboprop'];
-  const CAT_IT = { Widebody: 'Fusoliera larga', Narrowbody: 'Corridoio singolo', Regional: 'Regionale', Turboprop: 'Turboelica' };
+  const L = (k, v) => I18N.t(k, v);
+  const catName = c => CATS.includes(c) ? L('cat.' + c) : c;
   const TYPES = Object.keys(OPS).sort((a, b) => makerIdx(AC[a].maker) - makerIdx(AC[b].maker) || (AC[b].pax || 0) - (AC[a].pax || 0) || AC[a].name.localeCompare(AC[b].name));
   Object.values(FLEET).forEach(l => l.sort((a, b) => (AC[b].pax || 0) - (AC[a].pax || 0)));
   const AIRLINE_CODES = Object.keys(FLEET).sort((a, b) => prefIdx(a) - prefIdx(b));
@@ -46,10 +47,16 @@
     if (!el.src.endsWith('generic.webp')) el.src = 'fleet/generic.webp';
   }, true);
   const heroAirline = t => OPS[t] ? OPS[t][0] : null;
-  const fmt = n => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString('it-IT');
+  const fmt = n => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString(I18N.locale);
+  const dec = v => I18N.num(v);
+  // English overlay for the Italian data (data/i18n-en.js)
+  const EN = window.DATA_EN || {};
+  const acTx = (t, f) => { const o = I18N.lang === 'en' && EN.aircraft && EN.aircraft[t]; return (o && o[f]) || AC[t][f]; };
+  const alTx = (c, f) => { const o = I18N.lang === 'en' && EN.airlines && EN.airlines[c]; return (o && o[f]) || AL[c][f]; };
+  const cityOf = c => (I18N.lang === 'en' && EN.cities && EN.cities[c]) || AP[c][3];
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const ap = code => { const a = AP[code]; return a ? { code, lat: a[0], lng: a[1], name: a[2], city: a[3], cc: a[4], p: [a[1], a[0]] } : null; };
+  const ap = code => { const a = AP[code]; return a ? { code, lat: a[0], lng: a[1], name: a[2], city: cityOf(code), cc: a[4], p: [a[1], a[0]] } : null; };
   function hexRgb(h) { h = String(h || '#2997ff').replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
   function lum(rgb) { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(rgb[0]) + .7152 * f(rgb[1]) + .0722 * f(rgb[2]); }
   // brand colour made legible on black
@@ -60,9 +67,10 @@
     return `rgb(${r[0]},${r[1]},${r[2]})`;
   }
   const alColor = a => vivid((AL[a] || {}).color);
-  function durStr(km, cruise) { const h = km / (cruise || 820) + 0.45; const H = Math.floor(h), M = Math.round((h - H) * 60 / 5) * 5; return `${H} h ${M ? M + ' min' : ''}`.trim(); }
-  const REFS = [['Parigi', 1105], ['Londra', 1435], ['Mosca', 2375], ['Il Cairo', 2135], ['Dubai', 4330], ['New York', 6890], ['Johannesburg', 7700], ['Pechino', 8130], ['Tokyo', 9860], ['Singapore', 10030], ['Los Angeles', 10200], ['Buenos Aires', 11150], ['Perth', 13400], ['Sydney', 16300]];
-  function rangeRef(km) { let best = null; REFS.forEach(r => { if (r[1] <= km) best = r; }); return best; }
+  function durStr(km, cruise) { const m = Math.round((km / (cruise || 820) + 0.45) * 12) * 5, H = Math.floor(m / 60), M = m % 60; return `${H} h ${M ? M + ' min' : ''}`.trim(); }
+  // [km from Rome, English, Italian]
+  const REFS = [[1105, 'Paris', 'Parigi'], [1435, 'London', 'Londra'], [2135, 'Cairo', 'Il Cairo'], [2375, 'Moscow', 'Mosca'], [4330, 'Dubai'], [6890, 'New York'], [7700, 'Johannesburg'], [8130, 'Beijing', 'Pechino'], [9860, 'Tokyo'], [10030, 'Singapore'], [10200, 'Los Angeles'], [11150, 'Buenos Aires'], [13400, 'Perth'], [16300, 'Sydney']];
+  function rangeRef(km) { let best = null; REFS.forEach(r => { if (r[0] <= km) best = r; }); return best && ((I18N.lang === 'it' && best[2]) || best[1]); }
 
   function routesOf(al, t) {
     const list = RT[al + '-' + t] || [];
@@ -132,7 +140,7 @@
     const o = { v: 0 };
     return gsap.to(o, {
       v: to, duration: opts.duration || 1.8, ease: 'power3.out', delay: opts.delay || 0,
-      onUpdate: () => { el.textContent = dec ? o.v.toLocaleString('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : fmt(Math.round(o.v)); }
+      onUpdate: () => { el.textContent = dec ? o.v.toLocaleString(I18N.locale, { minimumFractionDigits: dec, maximumFractionDigits: dec }) : fmt(Math.round(o.v)); }
     });
   }
 
@@ -234,12 +242,12 @@
     const a = AC[t]; al = al || heroAirline(t);
     const ops = OPS[t] || [];
     return `<a class="ac-card" href="#/aircraft/${t}${al && al !== heroAirline(t) ? '/' + al : ''}" data-type="${t}" data-maker="${esc(a.maker)}" data-cat="${esc(a.category)}">
-      <div class="ac-top"><span class="ac-maker">${esc(a.maker)}</span><span class="ac-cat">${CAT_IT[a.category] || a.category}</span></div>
+      <div class="ac-top"><span class="ac-maker">${esc(a.maker)}</span><span class="ac-cat">${catName(a.category)}</span></div>
       <div class="ac-name">${esc(a.short || a.name)}</div>
       <div class="ac-full">${esc(a.name)}</div>
       <div class="ac-img"><img ${pic(al, t, 'card')} alt="${esc(a.name)} ${esc((AL[al] || {}).name)}" loading="lazy" decoding="async"></div>
       <div class="ac-stats"><span><b>${fmt(a.range)}</b> km</span><span><b>${fmt(a.maxSpeed)}</b> km/h</span>
-        <span class="ac-ops" title="${ops.length} compagnie">${ops.slice(0, 6).map(o => `<i style="background:${alColor(o)}"></i>`).join('')}</span></div>
+        <span class="ac-ops" title="${L('n.airlines', { n: ops.length })}">${ops.slice(0, 6).map(o => `<i style="background:${alColor(o)}"></i>`).join('')}</span></div>
     </a>`;
   }
 
@@ -264,7 +272,7 @@
 
     app.innerHTML = `
     <div class="home">
-      <section class="flight" id="sec-volo" aria-label="Decollo">
+      <section class="flight" id="sec-volo" aria-label="${L('fl.aria')}">
         <div class="fl-earth"><canvas class="fl-city"></canvas><div class="fl-ground">
           <div class="fl-runway">
             <i class="fl-roll fl-center"></i>
@@ -277,39 +285,39 @@
           <img class="fl-shadow" src="img/plane-top.webp" alt="">
           <div class="fl-craft">
             <i class="fl-trail l"></i><i class="fl-trail r"></i>
-            <img class="fl-plane" src="img/plane-top.webp" alt="Aereo di linea visto dall'alto">
+            <img class="fl-plane" src="img/plane-top.webp" alt="${L('fl.planeAlt')}">
             <i class="fl-light port"></i><i class="fl-light stbd"></i><i class="fl-light beacon"></i>
           </div>
         </div>
         <div class="fl-clouds front"></div>
         <div class="fl-haze"></div>
         <div class="fl-copy">
-          <div class="fl-line"><p class="eyebrow">Pista 36 · Allineati</p><h2>Pronti al decollo.</h2></div>
-          <div class="fl-line"><p class="eyebrow">V1 · Rotazione</p><h2>Spinta massima.</h2></div>
-          <div class="fl-line"><p class="eyebrow">Salita · FL360</p><h2>Sopra le nuvole.</h2></div>
-          <div class="fl-line"><p class="eyebrow">Crociera</p><h2>Il mondo, dall'alto.</h2></div>
+          <div class="fl-line"><p class="eyebrow">${L('fl.e1')}</p><h2>${L('fl.h1')}</h2></div>
+          <div class="fl-line"><p class="eyebrow">${L('fl.e2')}</p><h2>${L('fl.h2')}</h2></div>
+          <div class="fl-line"><p class="eyebrow">${L('fl.e3')}</p><h2>${L('fl.h3')}</h2></div>
+          <div class="fl-line"><p class="eyebrow">${L('fl.e4')}</p><h2>${L('fl.h4')}</h2></div>
         </div>
         <div class="fl-hud num">
           <div><span>ALT</span><b class="h-alt">0</b><i>ft</i></div>
-          <div><span>VEL</span><b class="h-spd">0</b><i>km/h</i></div>
-          <div><span>MACH</span><b class="h-mach">0,00</b><i></i></div>
-          <div class="h-phase">In pista</div>
+          <div><span>${L('fl.spd')}</span><b class="h-spd">0</b><i>km/h</i></div>
+          <div><span>MACH</span><b class="h-mach">${dec(0)}</b><i></i></div>
+          <div class="h-phase">${L('fl.ph0')}</div>
         </div>
         <div class="fl-brand" aria-hidden="true">
           <div class="fl-word"><span class="fl-word-blur">Hangar</span><span class="fl-word-sharp">Hangar</span></div>
         </div>
-        <div class="fl-hint"><div class="scroll-hint"></div><span>Scorri per decollare</span></div>
+        <div class="fl-hint"><div class="scroll-hint"></div><span>${L('fl.hint')}</span></div>
       </section>
 
       <section class="hero">
         <div class="hero-bg"><i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i><div class="grid-floor"></div></div>
         <div class="hero-copy wrap">
-          <p class="eyebrow hero-eyebrow">${AIRLINE_CODES.length} compagnie · ${TYPES.length} modelli · ${fmt(ALL_ROUTE_COUNT)} rotte</p>
-          <h1 class="display"><span class="hl1">Ogni aereo.</span><span class="hl2 grad-text">Ogni rotta.</span></h1>
-          <p class="lead hero-lead">Le flotte delle più grandi compagnie del mondo. Specifiche, livree e rotte, su un globo in altissima risoluzione.</p>
+          <p class="eyebrow hero-eyebrow">${L('n.airlines', { n: AIRLINE_CODES.length })} · ${L('n.models', { n: TYPES.length })} · ${L('n.routes', { n: ALL_ROUTE_COUNT })}</p>
+          <h1 class="display"><span class="hl1">${L('hero.hl1')}</span><span class="hl2 grad-text">${L('hero.hl2')}</span></h1>
+          <p class="lead hero-lead">${L('hero.lead')}</p>
           <button class="search-pill glass lens" data-open-search>
             <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zm5.3-2.2L21 21"/></svg>
-            <span>Cerca compagnia o modello</span><kbd>⌘ K</kbd>
+            <span>${L('hero.search')}</span><kbd>⌘ K</kbd>
           </button>
         </div>
         <div class="hero-stage"><img class="hero-plane" alt=""><img class="hero-plane" alt=""></div>
@@ -319,8 +327,8 @@
 
       <section class="section" id="sec-compagnie">
         <div class="wrap section-head">
-          <div><p class="eyebrow">Compagnie</p><h2 class="h2" data-split>Scegli una compagnia.</h2></div>
-          <p class="lead reveal">Ogni flotta, ogni livrea. Trascina per esplorare.</p>
+          <div><p class="eyebrow">${L('al.eyebrow')}</p><h2 class="h2" data-split>${L('al.title')}</h2></div>
+          <p class="lead reveal">${L('al.lead')}</p>
         </div>
         <div class="al-scroller" data-lenis-prevent-wheel>
           ${AIRLINE_CODES.map(c => {
@@ -330,24 +338,24 @@
               ${logo(c, 'al-logo')}
               <img class="al-plane" ${pic(c, t, 'strip')} alt="" loading="lazy" decoding="async">
               <span class="al-name">${esc(a.name)}</span>
-              <span class="al-meta">${esc(a.flag || '')} ${esc(a.country)} · ${FLEET[c].length} modelli</span>
+              <span class="al-meta">${esc(a.flag || '')} ${esc(alTx(c, 'country'))} · ${L('n.models', { n: FLEET[c].length })}</span>
             </a>`;
           }).join('')}
         </div>
       </section>
 
       <section class="showcase" id="sec-flotta">
-        <div class="sc-head"><p class="eyebrow">In volo</p><h2 class="h3">Scorri la flotta.</h2></div>
+        <div class="sc-head"><p class="eyebrow">${L('sc.eyebrow')}</p><h2 class="h3">${L('sc.title')}</h2></div>
         ${SHOW.map(([al, t], i) => {
           const a = AC[t];
           return `<div class="sc-slide" data-i="${i}">
             <div class="sc-bgname">${esc(a.short)}</div>
             <a href="#/aircraft/${t}/${al}" class="sc-link"><img class="sc-plane" ${pic(al, t, 'hero')} alt="${esc(a.name)}"></a>
             <div class="sc-info">
-              <div class="sc-title"><h3>${esc(a.name)}</h3><p>${esc(AL[al].name)} · ${esc(a.tagline || '')}</p></div>
-              <div class="sc-stat"><b>${fmt(a.maxSpeed)}</b><span>km/h max</span></div>
-              <div class="sc-stat"><b>${fmt(a.range)}</b><span>km autonomia</span></div>
-              <div class="sc-stat"><b>${fmt(a.pax)}</b><span>passeggeri</span></div>
+              <div class="sc-title"><h3>${esc(a.name)}</h3><p>${esc(AL[al].name)} · ${esc(acTx(t, 'tagline') || '')}</p></div>
+              <div class="sc-stat"><b>${fmt(a.maxSpeed)}</b><span>${L('sc.speed')}</span></div>
+              <div class="sc-stat"><b>${fmt(a.range)}</b><span>${L('sc.range')}</span></div>
+              <div class="sc-stat"><b>${fmt(a.pax)}</b><span>${L('sc.pax')}</span></div>
             </div>
           </div>`;
         }).join('')}
@@ -357,13 +365,13 @@
       <section class="section" id="sec-catalogo">
         <div class="wrap">
           <div class="section-head" style="margin-bottom:0">
-            <div><p class="eyebrow">Catalogo</p><h2 class="h2" data-split>Tutti i modelli.</h2></div>
-            <p class="lead reveal">Dal turboelica regionale al gigante a due ponti. Tocca un modello per scoprirlo.</p>
+            <div><p class="eyebrow">${L('cat.eyebrow')}</p><h2 class="h2" data-split>${L('cat.title')}</h2></div>
+            <p class="lead reveal">${L('cat.lead')}</p>
           </div>
           <div class="cat-filter reveal">
-            <div class="chips" data-f="maker"><button class="chip on" data-v="*">Tutti</button>${makersPresent.map(m => `<button class="chip" data-v="${esc(m)}">${esc(m)}</button>`).join('')}</div>
-            <div class="chips" data-f="cat"><button class="chip on" data-v="*">Ogni categoria</button>${CATS.map(c => `<button class="chip" data-v="${c}">${CAT_IT[c]}</button>`).join('')}</div>
-            <span class="cat-count"><b class="num">${TYPES.length}</b> modelli</span>
+            <div class="chips" data-f="maker"><button class="chip on" data-v="*">${L('cat.allMakers')}</button>${makersPresent.map(m => `<button class="chip" data-v="${esc(m)}">${esc(m)}</button>`).join('')}</div>
+            <div class="chips" data-f="cat"><button class="chip on" data-v="*">${L('cat.allCats')}</button>${CATS.map(c => `<button class="chip" data-v="${c}">${catName(c)}</button>`).join('')}</div>
+            <span class="cat-count"><b class="num">${TYPES.length}</b> ${L('cat.count')}</span>
           </div>
           <div class="cat-grid">${TYPES.map(t => acCard(t)).join('')}</div>
         </div>
@@ -371,18 +379,18 @@
 
       <section class="section world-section" id="sec-rotte">
         <div class="wrap section-head">
-          <div><p class="eyebrow">Rotte</p><h2 class="h2" data-split>Il mondo, collegato.</h2></div>
-          <p class="lead reveal">Ogni linea è una rotta reale. Tocca una rotta per volarci sopra in 3D.</p>
+          <div><p class="eyebrow">${L('rt.eyebrow')}</p><h2 class="h2" data-split>${L('rt.title')}</h2></div>
+          <p class="lead reveal">${L('rt.lead')}</p>
         </div>
         <div class="world-globe reveal"></div>
         <div class="wrap world-stats">
-          <div><b data-count="${pairKeys.length}">0</b><span>collegamenti</span></div>
-          <div><b data-count="${Object.keys(AP).length}">0</b><span>aeroporti</span></div>
-          <div><b data-count="${countries.size}">0</b><span>paesi</span></div>
+          <div><b data-count="${pairKeys.length}">0</b><span>${L('st.links')}</span></div>
+          <div><b data-count="${Object.keys(AP).length}">0</b><span>${L('st.airports')}</span></div>
+          <div><b data-count="${countries.size}">0</b><span>${L('st.countries')}</span></div>
         </div>
       </section>
 
-      <footer class="footer"><div class="wrap"><span>Hangar · Catalogo flotte</span><span>Dati indicativi a scopo informativo. Imagery © NASA GIBS, Esri, CARTO.</span></div></footer>
+      <footer class="footer"><div class="wrap"><span>${L('foot.catalog')}</span><span>${L('foot.disclaimer')} Imagery © NASA GIBS, Esri, CARTO.</span></div></footer>
     </div>`;
 
     const root = app.querySelector('.home');
@@ -653,7 +661,7 @@
     // HUD readout follows the (smoothed) timeline time, so it matches what's on screen
     const lerp = (a, b, t) => a + (b - a) * Math.max(0, Math.min(1, t));
     const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
-    const PH = ['In pista', 'Decollo', 'Salita', 'Crociera'];
+    const PH = [0, 1, 2, 3].map(i => L('fl.ph' + i));
     let lastPh = 0, last = '';
     function readout(t) {
       const spd = t < 3 ? 290 * Math.pow(t / 3, 2) : t < 8.2 ? lerp(290, 880, (t - 3) / 5.2) : lerp(880, 910, (t - 8.2) / 1.5);
@@ -664,7 +672,7 @@
       last = key;
       hSpd.textContent = fmt(Math.round(spd / 5) * 5);
       hAlt.textContent = fmt(Math.round(alt / 50) * 50);
-      hMach.textContent = (spd / sound).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      hMach.textContent = (spd / sound).toLocaleString(I18N.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const ph = t < .3 ? 0 : t < 3 ? 1 : t < 7 ? 2 : 3;
       if (ph !== lastPh) { lastPh = ph; hPhase.textContent = PH[ph]; gsap.fromTo(hPhase, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: .4, ease: 'power3.out' }); }
     }
@@ -729,7 +737,7 @@
         <div class="gc-line"><svg viewBox="0 0 24 24" fill="#fff"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
         <div style="text-align:right"><div class="gc-code">${B.code}</div><div class="gc-city">${esc(B.city)}</div></div>
       </div>
-      <div class="gc-meta"><div><b>${fmt(Math.round(d))} km</b>distanza</div><div><b>${durStr(d, cruise)}</b>durata stimata</div></div>
+      <div class="gc-meta"><div><b>${fmt(Math.round(d))} km</b>${L('card.distance')}</div><div><b>${durStr(d, cruise)}</b>${L('card.duration')}</div></div>
       ${ops ? `<div class="gc-types">${Object.keys(byAl).slice(0, 8).map(al => byAl[al].slice(0, 3).map(t => `<a href="#/aircraft/${t}/${al}" style="box-shadow:inset 3px 0 0 ${alColor(al)}">${al} · ${esc(AC[t].short)}</a>`).join('')).join('')}</div>` : ''}`;
   }
 
@@ -747,68 +755,68 @@
 
     app.innerHTML = `
     <div class="detail">
-      <a class="d-back glass lens" href="#/catalogo" aria-label="Torna al catalogo">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Catalogo
+      <a class="d-back glass lens" href="#/catalogo" aria-label="${L('d.back')}">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>${L('nav.catalog')}
       </a>
       <section class="d-hero" style="--c:${esc(alObj().color)};--c2:${esc(alObj().color2 || alObj().color)}">
         <div class="d-glow"></div>
         <div class="d-head wrap">
-          <p class="eyebrow d-eyebrow">${esc(a.maker)} · ${CAT_IT[a.category] || a.category}</p>
+          <p class="eyebrow d-eyebrow">${esc(a.maker)} · ${catName(a.category)}</p>
           <h1 class="d-title">${esc(a.short)}</h1>
           <div class="d-full">${esc(a.name)}</div>
-          <div class="d-tagline">${esc(a.tagline || '')}</div>
+          <div class="d-tagline">${esc(acTx(t, 'tagline') || '')}</div>
         </div>
         <div class="d-stage">
           <div class="d-bgname">${esc(a.short)}</div>
           <div class="d-plane-wrap"><img class="d-plane" ${pic(al, t, 'hero')} alt="${esc(a.name)} ${esc(alObj().name)}"><div class="d-shadow"></div></div>
-          <button class="d-nav prev glass lens" aria-label="Modello precedente: ${esc(AC[prevT].name)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg><span class="d-nav-label">${esc(AC[prevT].short)}</span></button>
-          <button class="d-nav next glass lens" aria-label="Modello successivo: ${esc(AC[nextT].name)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg><span class="d-nav-label">${esc(AC[nextT].short)}</span></button>
+          <button class="d-nav prev glass lens" aria-label="${esc(L('d.prev', { name: AC[prevT].name }))}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg><span class="d-nav-label">${esc(AC[prevT].short)}</span></button>
+          <button class="d-nav next glass lens" aria-label="${esc(L('d.next', { name: AC[nextT].name }))}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg><span class="d-nav-label">${esc(AC[nextT].short)}</span></button>
         </div>
         <div class="d-ops-wrap">
           <div class="d-ops-bar glass lens">
-            <div class="d-ops" role="tablist" aria-label="Compagnie">
+            <div class="d-ops" role="tablist" aria-label="${L('nav.airlines')}">
               <span class="op-thumb"></span>
               ${ops.map(o => `<button role="tab" data-al="${o}" class="${o === al ? 'on' : ''}"><i style="background:${alColor(o)}"></i>${esc(AL[o].name)}</button>`).join('')}
             </div>
           </div>
         </div>
-        <div class="d-scrollcue">${ops.length} compagnie · usa ← → o scorri lateralmente per cambiare modello</div>
+        <div class="d-scrollcue">${L('d.cue', { ops: L('n.airlines', { n: ops.length }) })}</div>
       </section>
 
       <section class="d-stats-sec">
         <div class="wrap">
-          <div class="section-head"><div><p class="eyebrow">Prestazioni</p><h2 class="h2" data-split>I numeri.</h2></div></div>
+          <div class="section-head"><div><p class="eyebrow">${L('d.perf')}</p><h2 class="h2" data-split>${L('d.numbers')}</h2></div></div>
           <div class="stat-grid">
             <div class="stat big accent-speed speed reveal">
-              <span class="s-label">Velocità massima</span>
+              <span class="s-label">${L('d.maxSpeed')}</span>
               <div class="s-val"><span data-count="${a.maxSpeed}">0</span><small>km/h</small></div>
-              <div class="s-sub">Crociera ${fmt(a.cruiseSpeed)} km/h${a.mach ? ' · Mach ' + String(a.mach).replace('.', ',') : ''}</div>
+              <div class="s-sub">${L('d.cruise', { v: fmt(a.cruiseSpeed) })}${a.mach ? ' · Mach ' + dec(a.mach) : ''}</div>
               <div class="s-bar"><i data-w="${(a.maxSpeed / MAX.speed * 100).toFixed(1)}"></i></div>
             </div>
             <div class="stat big accent-range reveal">
-              <span class="s-label">Autonomia massima</span>
+              <span class="s-label">${L('d.range')}</span>
               <div class="s-val"><span data-count="${a.range}">0</span><small>km</small></div>
-              <div class="s-sub">${ref ? `Abbastanza per Roma → ${ref[0]} senza scalo` : 'Pensato per il corto raggio'}</div>
+              <div class="s-sub">${ref ? L('d.rangeRef', { city: ref }) : L('d.shortHaul')}</div>
               <div class="s-bar"><i data-w="${(a.range / MAX.range * 100).toFixed(1)}"></i></div>
             </div>
-            <div class="stat reveal"><span class="s-label">Passeggeri</span><div class="s-val"><span data-count="${a.pax}">0</span></div><div class="s-sub">Fino a ${fmt(a.paxMax)} in configurazione massima</div></div>
-            <div class="stat reveal"><span class="s-label">Lunghezza</span><div class="s-val"><span data-count="${a.length}" data-dec="1">0</span><small>m</small></div><div class="s-sub">Altezza ${String(a.height).replace('.', ',')} m</div></div>
-            <div class="stat reveal"><span class="s-label">Apertura alare</span><div class="s-val"><span data-count="${a.wingspan}" data-dec="1">0</span><small>m</small></div></div>
-            <div class="stat reveal"><span class="s-label">Quota di tangenza</span><div class="s-val"><span data-count="${a.ceiling}">0</span><small>m</small></div></div>
-            <div class="stat reveal"><span class="s-label">Peso massimo al decollo</span><div class="s-val"><span data-count="${a.mtow}" data-dec="${a.mtow < 100 ? 1 : 0}">0</span><small>t</small></div></div>
-            <div class="stat reveal"><span class="s-label">Motori</span><div class="s-val"><span data-count="${a.engineCount}">0</span><small>× ${esc(a.thrust || '')}</small></div></div>
-            <div class="stat reveal"><span class="s-label">Carburante</span><div class="s-val"><span data-count="${a.fuel}">0</span><small>L</small></div></div>
-            <div class="stat reveal"><span class="s-label">Esemplari costruiti</span><div class="s-val"><span data-count="${a.built}">0</span></div><div class="s-sub">In servizio dal ${a.introduced}</div></div>
+            <div class="stat reveal"><span class="s-label">${L('d.pax')}</span><div class="s-val"><span data-count="${a.pax}">0</span></div><div class="s-sub">${L('d.paxMax', { n: fmt(a.paxMax) })}</div></div>
+            <div class="stat reveal"><span class="s-label">${L('d.length')}</span><div class="s-val"><span data-count="${a.length}" data-dec="1">0</span><small>m</small></div><div class="s-sub">${L('d.height', { v: dec(a.height) })}</div></div>
+            <div class="stat reveal"><span class="s-label">${L('d.wingspan')}</span><div class="s-val"><span data-count="${a.wingspan}" data-dec="1">0</span><small>m</small></div></div>
+            <div class="stat reveal"><span class="s-label">${L('d.ceiling')}</span><div class="s-val"><span data-count="${a.ceiling}">0</span><small>m</small></div></div>
+            <div class="stat reveal"><span class="s-label">${L('d.mtow')}</span><div class="s-val"><span data-count="${a.mtow}" data-dec="${a.mtow < 100 ? 1 : 0}">0</span><small>t</small></div></div>
+            <div class="stat reveal"><span class="s-label">${L('d.engines')}</span><div class="s-val"><span data-count="${a.engineCount}">0</span><small>× ${esc(a.thrust || '')}</small></div></div>
+            <div class="stat reveal"><span class="s-label">${L('d.fuel')}</span><div class="s-val"><span data-count="${a.fuel}">0</span><small>L</small></div></div>
+            <div class="stat reveal"><span class="s-label">${L('d.built')}</span><div class="s-val"><span data-count="${a.built}">0</span></div><div class="s-sub">${L('d.since', { y: String(a.introduced) })}</div></div>
           </div>
         </div>
       </section>
 
       <section class="spec-sec">
         <div class="wrap spec-layout">
-          <div class="spec-desc"><p class="eyebrow">Scheda tecnica</p><h2 class="h2" data-split>${esc(a.tagline || a.short)}</h2><p class="lead reveal">${esc(a.description || '')}</p></div>
+          <div class="spec-desc"><p class="eyebrow">${L('d.spec')}</p><h2 class="h2" data-split>${esc(acTx(t, 'tagline') || a.short)}</h2><p class="lead reveal">${esc(acTx(t, 'description') || '')}</p></div>
           <div class="spec-list reveal">
-            ${[['Costruttore', a.maker], ['Modello', a.name], ['Codice ICAO', a.code], ['Famiglia', a.family], ['Categoria', CAT_IT[a.category] || a.category], ['Motorizzazione', a.engines], ['Spinta / potenza', a.thrust], ['Velocità di crociera', a.mach ? `Mach ${String(a.mach).replace('.', ',')} · ${fmt(a.cruiseSpeed)} km/h` : `${fmt(a.cruiseSpeed)} km/h`], ['Primo volo', a.firstFlight], ['Entrata in servizio', a.introduced], ['Dimensioni', `${String(a.length).replace('.', ',')} × ${String(a.wingspan).replace('.', ',')} × ${String(a.height).replace('.', ',')} m`]]
-              .map(([k, v]) => `<div class="spec-row"><span>${k}</span><b>${esc(v)}</b></div>`).join('')}
+            ${[['maker', a.maker], ['model', a.name], ['icao', a.code], ['family', a.family], ['category', catName(a.category)], ['engines', a.engines], ['thrust', a.thrust], ['cruise', a.mach ? `Mach ${dec(a.mach)} · ${fmt(a.cruiseSpeed)} km/h` : `${fmt(a.cruiseSpeed)} km/h`], ['firstFlight', a.firstFlight], ['introduced', a.introduced], ['dims', `${dec(a.length)} × ${dec(a.wingspan)} × ${dec(a.height)} m`]]
+              .map(([k, v]) => `<div class="spec-row"><span>${L('s.' + k)}</span><b>${esc(v)}</b></div>`).join('')}
           </div>
         </div>
       </section>
@@ -816,7 +824,7 @@
       <section class="routes-sec">
         <div class="wrap">
           <div class="routes-head">
-            <div><p class="eyebrow">Rotte operate</p><h2 class="h2 rh-title">Dove vola.</h2></div>
+            <div><p class="eyebrow">${L('d.routes')}</p><h2 class="h2 rh-title">${L('d.where')}</h2></div>
             <div class="rh-al lead"><i></i><span class="rh-al-name"></span></div>
           </div>
           <div class="routes-layout">
@@ -827,10 +835,10 @@
       </section>
 
       <section class="similar-sec">
-        <div class="wrap section-head"><div><p class="eyebrow">Esplora</p><h2 class="h2" data-split>Modelli simili.</h2></div></div>
+        <div class="wrap section-head"><div><p class="eyebrow">${L('d.explore')}</p><h2 class="h2" data-split>${L('d.similar')}</h2></div></div>
         <div class="sim-scroller">${similar.map(x => acCard(x)).join('')}</div>
       </section>
-      <footer class="footer"><div class="wrap"><span>Hangar · ${esc(a.name)}</span><span>Dati indicativi a scopo informativo.</span></div></footer>
+      <footer class="footer"><div class="wrap"><span>Hangar · ${esc(a.name)}</span><span>${L('foot.disclaimer')}</span></div></footer>
     </div>`;
 
     const root = app.querySelector('.detail');
@@ -918,7 +926,7 @@
     function loadRoutes(animate) {
       curRoutes = routesOf(al, t);
       rhDot.style.background = alColor(al); rhDot.style.boxShadow = `0 0 16px ${alColor(al)}`;
-      rhName.textContent = `${AL[al].name} · ${curRoutes.length} rotte`;
+      rhName.textContent = `${AL[al].name} · ${L('n.routes', { n: curRoutes.length })}`;
       listEl.innerHTML = curRoutes.map(x => `<button class="route-item" data-id="${x.id}" style="--c:${x.c}">
           <i class="ri-dot"></i>
           <div class="ri-main"><div class="ri-codes">${x.a}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>${x.b}</div>
@@ -1010,8 +1018,8 @@
 
     app.innerHTML = `
     <div class="airline">
-      <a class="d-back glass lens" href="#/compagnie" aria-label="Torna alle compagnie">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Compagnie
+      <a class="d-back glass lens" href="#/compagnie" aria-label="${L('a.back')}">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>${L('nav.airlines')}
       </a>
       <section class="a-hero">
         <div class="a-bg">
@@ -1022,26 +1030,26 @@
         <img class="a-plane" ${pic(code, flagship, 'airline')} alt="${esc(AC[flagship].name)} ${esc(a.name)}">
         <div class="wrap">
           ${logo(code, 'a-logo')}
-          <p class="eyebrow a-eye">${esc(a.flag || '')} ${esc(a.country)}${a.alliance ? ' · ' + esc(a.alliance) : ''}</p>
+          <p class="eyebrow a-eye">${esc(a.flag || '')} ${esc(alTx(code, 'country'))}${a.alliance ? ' · ' + esc(a.alliance) : ''}</p>
           <h1 class="a-name">${esc(a.name)}</h1>
-          <p class="lead a-tag">${esc(a.tagline || '')}</p>
+          <p class="lead a-tag">${esc(alTx(code, 'tagline') || '')}</p>
           <div class="a-meta">
-            <div><b data-count="${a.fleetSize || 0}">0</b><span>aerei in flotta</span></div>
-            <div><b data-count="${a.destinations || 0}">0</b><span>destinazioni</span></div>
-            <div><b>${a.founded || '—'}</b><span>fondazione</span></div>
-            <div><b>${(a.hubs || []).slice(0, 2).join(' · ')}</b><span>hub principali</span></div>
+            <div><b data-count="${a.fleetSize || 0}">0</b><span>${L('a.fleetSize')}</span></div>
+            <div><b data-count="${a.destinations || 0}">0</b><span>${L('a.dest')}</span></div>
+            <div><b>${a.founded || '—'}</b><span>${L('a.founded')}</span></div>
+            <div><b>${(a.hubs || []).slice(0, 2).join(' · ')}</b><span>${L('a.hubs')}</span></div>
           </div>
         </div>
       </section>
 
       <section class="fleet-sec">
         <div class="wrap">
-          <div class="section-head"><div><p class="eyebrow">Flotta</p><h2 class="h2" data-split>${fleet.length} modelli in livrea.</h2></div><p class="lead reveal">${esc(a.description || '')}</p></div>
+          <div class="section-head"><div><p class="eyebrow">${L('a.fleet')}</p><h2 class="h2" data-split>${L('a.inLivery', { n: fleet.length })}</h2></div><p class="lead reveal">${esc(alTx(code, 'description') || '')}</p></div>
           <div class="fleet-list">
             ${fleet.map(t => { const x = AC[t]; return `<a class="fleet-row" href="#/aircraft/${t}/${code}">
               <div><div class="fr-name">${esc(x.short)}</div><div class="fr-full">${esc(x.name)}</div></div>
               <div class="fr-img"><img ${pic(code, t, 'row')} alt="${esc(x.name)}" loading="lazy"></div>
-              <div class="fr-stats"><span><b>${fmt(x.pax)}</b> posti</span><span><b>${fmt(x.range)}</b> km</span><span><b>${(RT[code + '-' + t] || []).length}</b> rotte</span></div>
+              <div class="fr-stats"><span><b>${fmt(x.pax)}</b> ${L('a.seats')}</span><span><b>${fmt(x.range)}</b> km</span><span><b>${(RT[code + '-' + t] || []).length}</b> ${L('st.routes')}</span></div>
             </a>`; }).join('')}
           </div>
         </div>
@@ -1049,13 +1057,13 @@
 
       <section class="routes-sec">
         <div class="wrap">
-          <div class="section-head"><div><p class="eyebrow">Network</p><h2 class="h2" data-split>Dove vola ${esc(a.name)}.</h2></div>
-            <div class="world-stats" style="margin:0;gap:40px"><div><b data-count="${allR.length}">0</b><span>rotte</span></div><div><b data-count="${aps.size}">0</b><span>aeroporti</span></div><div><b data-count="${ccs.size}">0</b><span>paesi</span></div></div>
+          <div class="section-head"><div><p class="eyebrow">${L('a.network')}</p><h2 class="h2" data-split>${esc(L('a.where', { name: a.name }))}</h2></div>
+            <div class="world-stats" style="margin:0;gap:40px"><div><b data-count="${allR.length}">0</b><span>${L('st.routes')}</span></div><div><b data-count="${aps.size}">0</b><span>${L('st.airports')}</span></div><div><b data-count="${ccs.size}">0</b><span>${L('st.countries')}</span></div></div>
           </div>
           <div class="net-globe reveal"></div>
         </div>
       </section>
-      <footer class="footer"><div class="wrap"><span>Hangar · ${esc(a.name)}</span><span>Dati indicativi a scopo informativo.</span></div></footer>
+      <footer class="footer"><div class="wrap"><span>Hangar · ${esc(a.name)}</span><span>${L('foot.disclaimer')}</span></div></footer>
     </div>`;
 
     const root = app.querySelector('.airline');
@@ -1163,36 +1171,83 @@
       als = AIRLINE_CODES.filter(c => {
         if (!q) return true;
         const a = AL[c];
-        const hubCities = (a.hubs || []).map(h => AP[h] ? AP[h][3] : '').join(' ');
-        return norm([c, a.name, a.country, a.alliance, (a.hubs || []).join(' '), hubCities].join(' ')).includes(q);
+        const hubCities = (a.hubs || []).map(h => AP[h] ? AP[h][3] + ' ' + cityOf(h) : '').join(' ');
+        return norm([c, a.name, a.country, alTx(c, 'country'), a.alliance, (a.hubs || []).join(' '), hubCities].join(' ')).includes(q);
       });
     }
     if (scope !== 'airline') {
       acs = TYPES.filter(t => {
         if (!q) return true;
         const a = AC[t];
-        return norm([t, a.name, a.short, a.maker, a.family, a.category, CAT_IT[a.category]].join(' ')).includes(q);
+        return norm([t, a.name, a.short, a.maker, a.family, a.category, catName(a.category)].join(' ')).includes(q);
       });
     }
     if (!q && scope === 'all') { als = als.slice(0, 6); acs = acs.slice(0, 6); }
     sel = 0;
     let html = '';
-    if (als.length) html += `<div class="sp-group">Compagnie</div>` + als.map(c => {
+    if (als.length) html += `<div class="sp-group">${L('sp.airlines')}</div>` + als.map(c => {
       const a = AL[c];
       return `<a class="sp-item" href="#/airline/${c}">${logo(c, 'sp-badge')}
-        <div><div class="sp-t">${hl(a.name, q)}</div><div class="sp-s">${esc(a.flag || '')} ${esc(a.country)} · ${FLEET[c].length} modelli${a.alliance ? ' · ' + esc(a.alliance) : ''}</div></div><span class="sp-go">↩</span></a>`;
+        <div><div class="sp-t">${hl(a.name, q)}</div><div class="sp-s">${esc(a.flag || '')} ${esc(alTx(c, 'country'))} · ${L('n.models', { n: FLEET[c].length })}${a.alliance ? ' · ' + esc(a.alliance) : ''}</div></div><span class="sp-go">↩</span></a>`;
     }).join('');
-    if (acs.length) html += `<div class="sp-group">Aerei</div>` + acs.map(t => {
+    if (acs.length) html += `<div class="sp-group">${L('sp.aircraft')}</div>` + acs.map(t => {
       const a = AC[t];
       return `<a class="sp-item" href="#/aircraft/${t}"><img class="sp-thumb" src="${img(heroAirline(t), t)}" alt="" loading="lazy">
-        <div><div class="sp-t">${hl(a.name, q)}</div><div class="sp-s">${esc(a.maker)} · ${fmt(a.range)} km · ${OPS[t].length} compagnie</div></div><span class="sp-go">↩</span></a>`;
+        <div><div class="sp-t">${hl(a.name, q)}</div><div class="sp-s">${esc(a.maker)} · ${fmt(a.range)} km · ${L('n.airlines', { n: OPS[t].length })}</div></div><span class="sp-go">↩</span></a>`;
     }).join('');
-    if (!html) html = `<div class="sp-empty">Nessun risultato per “${esc(spIn.value)}”.</div>`;
+    if (!html) html = `<div class="sp-empty">${esc(L('sp.empty', { q: spIn.value }))}</div>`;
     spRes.innerHTML = html;
     markSel([...spRes.querySelectorAll('.sp-item')]);
     gsap.fromTo(spRes.querySelectorAll('.sp-item'), { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: .45, ease: 'expo.out', stagger: .02 });
   }
   spIn.addEventListener('input', runSearch);
+
+  // =====================================================================
+  // LANGUAGE
+  // =====================================================================
+  const langBtn = document.querySelector('.nav-lang'), langMenu = document.getElementById('lang-menu');
+  const CHECK = '<svg class="lang-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function buildLang() {
+    langBtn.querySelector('.lang-code').textContent = I18N.lang.toUpperCase();
+    langMenu.innerHTML = Object.keys(I18N.LANGS).map(k =>
+      `<button role="menuitemradio" aria-checked="${k === I18N.lang}" data-lang="${k}" lang="${k}"><span>${I18N.LANGS[k].label}</span>${CHECK}</button>`).join('');
+  }
+  function langOpen(open) {
+    if (open) {
+      const b = langBtn.getBoundingClientRect(), h = nav.getBoundingClientRect();
+      langMenu.style.left = (b.right - h.left - langMenu.offsetWidth) + 'px';
+      langMenu.style.top = (b.bottom - h.top + 12) + 'px';
+      if (window.Glass) Glass.scan(nav);
+    }
+    langMenu.classList.toggle('open', open);
+    langBtn.setAttribute('aria-expanded', open);
+    if (open) { const on = langMenu.querySelector('[aria-checked="true"]'); on && on.focus({ preventScroll: true }); }
+  }
+  langBtn.addEventListener('click', () => langOpen(!langMenu.classList.contains('open')));
+  langMenu.addEventListener('click', e => {
+    const b = e.target.closest('[data-lang]'); if (!b) return;
+    langOpen(false); langBtn.focus({ preventScroll: true });
+    I18N.set(b.dataset.lang);
+  });
+  document.addEventListener('pointerdown', e => { if (!e.target.closest('.nav-lang, .lang-menu')) langOpen(false); });
+  langMenu.addEventListener('keydown', e => {
+    const items = [...langMenu.querySelectorAll('button')], i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus(); }
+    else if (e.key === 'Escape') { e.stopPropagation(); langOpen(false); langBtn.focus(); }
+  });
+  lenis.on('scroll', () => { if (langMenu.classList.contains('open')) langOpen(false); });
+  addEventListener('resize', () => langOpen(false));
+
+  // re-render the current view in the new language, keeping the scroll position
+  I18N.onChange(() => {
+    buildLang();
+    const y = lenis.scroll;
+    render(parse());
+    requestAnimationFrame(() => requestAnimationFrame(() => { ScrollTrigger.refresh(); lenis.scrollTo(y, { immediate: true, force: true }); }));
+    if (spotOpen) { moveSeg(); runSearch(); }
+  });
+  I18N.apply();
+  buildLang();
 
   // =====================================================================
   // INTRO + BOOT
